@@ -3,6 +3,7 @@ import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import EditBookPage from './components/EditBookPage';
 import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
 
 const App = () => {
   const baseURL = 'http://localhost:3001'; // URL backend
@@ -21,14 +22,14 @@ const App = () => {
     }
   }, []);
 
-  // Fetch books from backend
+  // Fetch books dari backend jika user login
   useEffect(() => {
     const loadBooks = async () => {
       try {
-        const token = localStorage.getItem('token'); // Ambil token dari localStorage
+        const token = localStorage.getItem('token');
         const response = await axios.get(`${baseURL}/api/books`, {
           headers: {
-            Authorization: `Bearer ${token}`, // Tambahkan header Authorization
+            Authorization: `Bearer ${token}`,
           },
         });
         setBooks(response.data);
@@ -42,7 +43,7 @@ const App = () => {
     }
   }, [isAuthenticated]);
 
-  // Handle form input changes for adding a new book
+  // Handle perubahan input form untuk menambahkan buku
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setNewBook({
@@ -51,11 +52,11 @@ const App = () => {
     });
   };
 
-  // Add a new book
+  // Tambahkan buku baru
   const handleAddBook = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token'); // Ambil token dari localStorage
+      const token = localStorage.getItem('token');
       await axios.post(`${baseURL}/api/books`, newBook, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -75,11 +76,11 @@ const App = () => {
     }
   };
 
-  // Delete a book
+  // Hapus buku
   const handleDeleteBook = async (id) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus buku ini?')) return;
     try {
-      const token = localStorage.getItem('token'); // Ambil token dari localStorage
+      const token = localStorage.getItem('token');
       await axios.delete(`${baseURL}/api/books/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -95,7 +96,7 @@ const App = () => {
   // Navigasi antar halaman
   const navigateTo = (page, bookId = null) => {
     setCurrentPage(page);
-    setEditBookId(bookId); // Set ID buku untuk halaman edit
+    setEditBookId(bookId);
   };
 
   // Handle login
@@ -103,7 +104,7 @@ const App = () => {
     try {
       const response = await axios.post(`${baseURL}/api/login`, { email, password });
       const { token } = response.data;
-      localStorage.setItem('token', token); // Simpan token di localStorage
+      localStorage.setItem('token', token);
       setIsAuthenticated(true);
       setCurrentPage('home');
     } catch (error) {
@@ -114,14 +115,30 @@ const App = () => {
 
   // Handle logout
   const handleLogout = () => {
-    localStorage.removeItem('token'); // Hapus token dari localStorage
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
     setCurrentPage('login');
   };
 
   return (
     <div className="container my-5">
-      {currentPage === 'login' && <LoginPage onLogin={handleLogin} />}
+      {/* Halaman Login */}
+      {currentPage === 'login' && (
+        <LoginPage
+          onLogin={handleLogin}
+          onNavigateToRegister={() => setCurrentPage('register')}
+        />
+      )}
+
+      {/* Halaman Register */}
+      {currentPage === 'register' && (
+        <RegisterPage
+          onNavigateToLogin={() => setCurrentPage('login')}
+          baseURL={baseURL}
+        />
+      )}
+
+      {/* Halaman Home (Manajemen Buku) */}
       {currentPage === 'home' && isAuthenticated && (
         <>
           <h1 className="text-center">Manajemen Buku</h1>
@@ -218,6 +235,8 @@ const App = () => {
           </table>
         </>
       )}
+
+      {/* Halaman Edit Buku */}
       {currentPage === 'edit-book' && isAuthenticated && editBookId && (
         <EditBookPage bookId={editBookId} navigateTo={navigateTo} baseURL={baseURL} />
       )}
