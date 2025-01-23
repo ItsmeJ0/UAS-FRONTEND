@@ -1,158 +1,232 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-function App() {
+const App = () => {
+  const baseURL = 'http://localhost:3001'; // Arahkan ke port backend Go yang sudah Anda konfigurasikan
+ // Tambahkan prefix API
+// Sesuaikan dengan URL backend Anda
   const [books, setBooks] = useState([]);
   const [newBook, setNewBook] = useState({ title: '', author: '', year: '', genre: '' });
   const [editBook, setEditBook] = useState(null);
 
-  // Handle form input changes
+  // Fetch books from backend
+  useEffect(() => {
+    const loadBooks = async () => {
+      try {
+        const response = await axios.get(`${baseURL}/api/books`);
+        setBooks(response.data);
+      } catch (error) {
+        console.error('Error loading books:', error);
+      }
+    };
+    loadBooks();
+  }, []);
+
+
+  // Handle form input changes for adding a new book
   const handleInputChange = (e) => {
     const { id, value } = e.target;
     setNewBook({
       ...newBook,
-      [id]: value
+      [id]: value,
     });
   };
 
-  // Handle edit form input changes
+  // Add a new book
+  const handleAddBook = async (e) => {
+    e.preventDefault();
+    if (!newBook.title || !newBook.author || !newBook.year || !newBook.genre) {
+      alert('Semua kolom harus diisi!');
+      return;
+    }
+    
+    console.log("Data yang akan dikirim:", newBook);  // Log data yang akan dikirimkan ke backend
+    try {
+      await axios.post(`${baseURL}/api/books`, newBook);
+      setBooks([...books, newBook]); // Update local state
+      setNewBook({ title: '', author: '', year: '', genre: '' });
+    } catch (error) {
+      console.error('Error adding book:', error);
+      alert('Gagal menambahkan buku');
+    }
+  };
+  
+
+  // Delete a book
+  const handleDeleteBook = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus buku ini?')) return;
+    try {
+      await axios.delete(`${baseURL}/api/books/${id}`);
+      setBooks(books.filter((book) => book.id !== id));
+    } catch (error) {
+      console.error('Error deleting book:', error);
+      alert('Gagal menghapus buku');
+    }
+  };
+
+  // Start editing a book
+  const handleEditClick = (book) => {
+    setEditBook(book);
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditBook(null);
+  };
+
+  // Update book details
+  const handleEditBook = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.put(`${baseURL}/books/${editBook.id}`, editBook);
+      setBooks(books.map((book) => (book.id === editBook.id ? editBook : book)));
+      setEditBook(null);
+    } catch (error) {
+      console.error('Error editing book:', error);
+      alert('Gagal memperbarui buku');
+    }
+  };
+
+  // Handle edit input changes
   const handleEditInputChange = (e) => {
     const { id, value } = e.target;
     setEditBook({
       ...editBook,
-      [id]: value
+      [id]: value,
     });
-  };
-
-  // Add new book
-  const handleAddBook = async (e) => {
-    e.preventDefault();
-    try {
-      // Make an API call or use state to add the book
-      const updatedBooks = [...books, { ...newBook, id: books.length + 1 }];
-      setBooks(updatedBooks);
-      setNewBook({ title: '', author: '', year: '', genre: '' });
-    } catch (error) {
-      console.error("Error adding book", error);
-    }
-  };
-
-  // Edit book
-  const handleEditBook = async (e) => {
-    e.preventDefault();
-    try {
-      const updatedBooks = books.map((book) =>
-        book.id === editBook.id ? editBook : book
-      );
-      setBooks(updatedBooks);
-      setEditBook(null);
-    } catch (error) {
-      console.error("Error editing book", error);
-    }
-  };
-
-  // Cancel edit
-  const cancelEdit = () => {
-    setEditBook(null);
   };
 
   return (
     <div className="container my-5">
-      <h1 className="text-center">Book Management</h1>
+      <h1 className="text-center">Manajemen Buku</h1>
 
       {/* Add Book Form */}
-      <div className="card my-4">
-        <div className="card-body">
-          <h5 className="card-title">Tambah Buku</h5>
-          <form onSubmit={handleAddBook}>
-            <div className="mb-3">
-              <label htmlFor="title" className="form-label">Judul</label>
-              <input type="text" className="form-control" id="title" value={newBook.title} onChange={handleInputChange} required />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="author" className="form-label">Penulis</label>
-              <input type="text" className="form-control" id="author" value={newBook.author} onChange={handleInputChange} required />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="year" className="form-label">Tahun</label>
-              <input type="number" className="form-control" id="year" value={newBook.year} onChange={handleInputChange} />
-            </div>
-            <div className="mb-3">
-              <label htmlFor="genre" className="form-label">Genre</label>
-              <input type="text" className="form-control" id="genre" value={newBook.genre} onChange={handleInputChange} />
-            </div>
-            <button type="submit" className="btn btn-primary">Tambah Buku</button>
-          </form>
+      <form onSubmit={handleAddBook} className="mb-4">
+        <h2>Tambah Buku</h2>
+        <div className="mb-3">
+          <label htmlFor="title" className="form-label">Judul</label>
+          <input
+            type="text"
+            id="title"
+            className="form-control"
+            value={newBook.title}
+            onChange={handleInputChange}
+            required
+          />
         </div>
-      </div>
+        <div className="mb-3">
+          <label htmlFor="author" className="form-label">Penulis</label>
+          <input
+            type="text"
+            id="author"
+            className="form-control"
+            value={newBook.author}
+            onChange={handleInputChange}
+            required
+          />
+        </div>
+        <div className="mb-3">
+          <label htmlFor="year" className="form-label">Tahun</label>
+          <input
+            type="number"
+            id="year"
+            className="form-control"
+            value={newBook.year}
+            onChange={handleInputChange}
+          />
+        </div>
+        <div className="mb-3">
+          <label htmlFor="genre" className="form-label">Genre</label>
+          <input
+            type="text"
+            id="genre"
+            className="form-control"
+            value={newBook.genre}
+            onChange={handleInputChange}
+          />
+        </div>
+        <button type="submit" className="btn btn-primary">Tambah Buku</button>
+      </form>
 
       {/* Edit Book Form */}
       {editBook && (
-        <form onSubmit={handleEditBook} className="card my-4 p-3">
-          <h5 className="card-title">Edit Buku</h5>
+        <form onSubmit={handleEditBook} className="mb-4">
+          <h2>Edit Buku</h2>
           <div className="mb-3">
-            <input type="hidden" id="editBookId" value={editBook.id} />
             <label htmlFor="editTitle" className="form-label">Judul</label>
-            <input type="text" id="editTitle" className="form-control" value={editBook.title} onChange={handleEditInputChange} />
+            <input
+              type="text"
+              id="title"
+              className="form-control"
+              value={editBook.title}
+              onChange={handleEditInputChange}
+              required
+            />
           </div>
           <div className="mb-3">
             <label htmlFor="editAuthor" className="form-label">Penulis</label>
-            <input type="text" id="editAuthor" className="form-control" value={editBook.author} onChange={handleEditInputChange} />
+            <input
+              type="text"
+              id="author"
+              className="form-control"
+              value={editBook.author}
+              onChange={handleEditInputChange}
+              required
+            />
           </div>
-          <div className="mb-3">
-            <label htmlFor="editYear" className="form-label">Tahun</label>
-            <input type="number" id="editYear" className="form-control" value={editBook.year} onChange={handleEditInputChange} />
-          </div>
-          <div className="mb-3">
-            <label htmlFor="editGenre" className="form-label">Genre</label>
-            <input type="text" id="editGenre" className="form-control" value={editBook.genre} onChange={handleEditInputChange} />
-          </div>
-          <div className="d-flex justify-content-between">
-            <button type="submit" className="btn btn-success">Update Buku</button>
-            <button type="button" onClick={cancelEdit} className="btn btn-secondary">Batal</button>
-          </div>
+          <button type="submit" className="btn btn-success">Update Buku</button>
+          <button
+            type="button"
+            className="btn btn-secondary ms-3"
+            onClick={handleCancelEdit}
+          >
+            Batal
+          </button>
         </form>
       )}
 
       {/* Book List */}
-      <div>
-        <h2>Daftar Buku</h2>
-        <table className="table table-bordered">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Judul</th>
-              <th>Penulis</th>
-              <th>Tahun</th>
-              <th>Genre</th>
-              <th>Aksi</th>
+      <h2>Daftar Buku</h2>
+      <table className="table table-bordered">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Judul</th>
+            <th>Penulis</th>
+            <th>Tahun</th>
+            <th>Genre</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {books.map((book) => (
+            <tr key={book.id}>
+              <td>{book.id}</td>
+              <td>{book.title}</td>
+              <td>{book.author}</td>
+              <td>{book.year}</td>
+              <td>{book.genre}</td>
+              <td>
+                <button
+                  className="btn btn-warning btn-sm"
+                  onClick={() => handleEditClick(book)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn btn-danger btn-sm ms-2"
+                  onClick={() => handleDeleteBook(book.id)}
+                >
+                  Hapus
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {books.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="text-center">Memuat data...</td>
-              </tr>
-            ) : (
-              books.map((book) => (
-                <tr key={book.id}>
-                  <td>{book.id}</td>
-                  <td>{book.title}</td>
-                  <td>{book.author}</td>
-                  <td>{book.year}</td>
-                  <td>{book.genre}</td>
-                  <td>
-                    <button onClick={() => setEditBook(book)} className="btn btn-warning">Edit</button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-}
+};
 
 export default App;
