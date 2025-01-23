@@ -4,8 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 const App = () => {
   const baseURL = 'http://localhost:3001'; // Arahkan ke port backend Go yang sudah Anda konfigurasikan
- // Tambahkan prefix API
-// Sesuaikan dengan URL backend Anda
+  // Tambahkan prefix API
+  // Sesuaikan dengan URL backend Anda
   const [books, setBooks] = useState([]);
   const [newBook, setNewBook] = useState({ title: '', author: '', year: '', genre: '' });
   const [editBook, setEditBook] = useState(null);
@@ -15,13 +15,16 @@ const App = () => {
     const loadBooks = async () => {
       try {
         const response = await axios.get(`${baseURL}/api/books`);
+        console.log("Books from API:", response.data); // Debug log
         setBooks(response.data);
       } catch (error) {
         console.error('Error loading books:', error);
       }
     };
+
     loadBooks();
   }, []);
+
 
 
   // Handle form input changes for adding a new book
@@ -36,22 +39,22 @@ const App = () => {
   // Add a new book
   const handleAddBook = async (e) => {
     e.preventDefault();
-    if (!newBook.title || !newBook.author || !newBook.year || !newBook.genre) {
-      alert('Semua kolom harus diisi!');
-      return;
-    }
-    
-    console.log("Data yang akan dikirim:", newBook);  // Log data yang akan dikirimkan ke backend
     try {
+      // Tambahkan data baru
       await axios.post(`${baseURL}/api/books`, newBook);
-      setBooks([...books, newBook]); // Update local state
+
+      // Muat ulang data dari API setelah menambahkan buku
+      const response = await axios.get(`${baseURL}/api/books`);
+      setBooks(response.data);
+
+      // Reset form
       setNewBook({ title: '', author: '', year: '', genre: '' });
+      alert('Buku berhasil ditambahkan!');
     } catch (error) {
       console.error('Error adding book:', error);
       alert('Gagal menambahkan buku');
     }
   };
-  
 
   // Delete a book
   const handleDeleteBook = async (id) => {
@@ -77,16 +80,33 @@ const App = () => {
 
   // Update book details
   const handleEditBook = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Mencegah form submit default behavior
     try {
-      await axios.put(`${baseURL}/books/${editBook.id}`, editBook);
-      setBooks(books.map((book) => (book.id === editBook.id ? editBook : book)));
+      // Mengirim permintaan PUT ke backend untuk memperbarui data buku
+      await axios.put(`${baseURL}/api/books/${editBook.id}`, editBook);
+  
+      // Memperbarui state books dengan data yang baru diperbarui
+      setBooks(
+        books.map((book) =>
+          book.id === editBook.id ? { ...book, ...editBook } : book
+        )
+      );
+  
+      // Reset form edit setelah selesai
       setEditBook(null);
+      alert("Buku berhasil diperbarui!");
     } catch (error) {
-      console.error('Error editing book:', error);
-      alert('Gagal memperbarui buku');
+      console.error("Error editing book:", error);
+  
+      // Tampilkan pesan error yang lebih spesifik jika ada
+      if (error.response && error.response.data) {
+        alert(`Gagal memperbarui buku: ${error.response.data.error}`);
+      } else {
+        alert("Gagal memperbarui buku. Silakan coba lagi.");
+      }
     }
   };
+  
 
   // Handle edit input changes
   const handleEditInputChange = (e) => {
@@ -175,6 +195,28 @@ const App = () => {
               required
             />
           </div>
+          <div className="mb-3">
+            <label htmlFor="editYear" className="form-label">Tahun</label>
+            <input
+              type="text"
+              id="year"
+              className="form-control"
+              value={editBook.year}
+              onChange={handleEditInputChange}
+              required
+            />
+          </div>
+          <div className="mb-3">
+            <label htmlFor="editGenre" className="form-label">Genre</label>
+            <input
+              type="text"
+              id="genre"
+              className="form-control"
+              value={editBook.genre}
+              onChange={handleEditInputChange}
+              required
+            />
+          </div>
           <button type="submit" className="btn btn-success">Update Buku</button>
           <button
             type="button"
@@ -223,6 +265,8 @@ const App = () => {
               </td>
             </tr>
           ))}
+
+
         </tbody>
       </table>
     </div>
