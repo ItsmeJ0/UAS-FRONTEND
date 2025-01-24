@@ -27,12 +27,12 @@ const App = () => {
   useEffect(() => {
     const connectWebSocket = () => {
       const socket = new WebSocket('ws://localhost:3001/ws');
-
+  
       socket.onopen = () => {
         console.log('WebSocket connection established');
-        setWs(socket);
+        setWs(socket); // Simpan koneksi di state
       };
-
+  
       socket.onmessage = (event) => {
         console.log('Received message:', event.data);
         setAnnouncements((prevAnnouncements) => [
@@ -40,20 +40,21 @@ const App = () => {
           event.data,
         ]);
       };
-      
+  
       socket.onclose = (event) => {
         console.log('WebSocket connection closed:', event);
       };
-
+  
       return socket;
     };
-
-    const ws = connectWebSocket();
-
+  
+    const socket = connectWebSocket();
+  
     return () => {
-      ws.close();
+      socket.close(); // Tutup WebSocket ketika komponen dibongkar
     };
-  }, []);
+  }, [ws]);
+  
 
 
   // Handle add announcement
