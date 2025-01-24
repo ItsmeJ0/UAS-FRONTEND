@@ -10,9 +10,52 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState('login'); // Halaman aktif
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Status login
   const [books, setBooks] = useState([]);
-  const [newBook, setNewBook] = useState({ title: '', author: '', year: '', genre: '' });
   const [editBookId, setEditBookId] = useState(null); // ID buku untuk diedit
+  const [newBook, setNewBook] = useState({ title: '', author: '', year: '', genre: '' });
+  const [newAnnouncement, setNewAnnouncement] = useState('');
+  const [announcements, setAnnouncements] = useState([]);
+  const [ws, setWs] = useState(null); // WebSocket connection
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+      setCurrentPage('home');
+    }
+  }, []);
+
+  // Setup WebSocket connection
+  useEffect(() => {
+    const socket = new WebSocket('ws://localhost:3001/ws');
+    socket.onmessage = (event) => {
+      setAnnouncements((prevAnnouncements) => [
+        ...prevAnnouncements,
+        event.data,
+      ]);
+    };
+    setWs(socket);
+
+    return () => {
+      socket.close();
+    };
+  }, []);
+
+  // Handle add announcement
+  const handleAddAnnouncement = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(`${baseURL}/api/announcement`, { content: newAnnouncement }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setNewAnnouncement('');
+    } catch (error) {
+      console.error('Error adding announcement:', error);
+      alert('Gagal menambahkan pengumuman');
+    }
+  };
   // Cek token saat aplikasi dimulai
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -43,14 +86,6 @@ const App = () => {
     }
   }, [isAuthenticated]);
 
-  // Handle perubahan input form untuk menambahkan buku
-  const handleInputChange = (e) => {
-    const { id, value } = e.target;
-    setNewBook({
-      ...newBook,
-      [id]: value,
-    });
-  };
 
   // Tambahkan buku baru
   const handleAddBook = async (e) => {
@@ -138,7 +173,7 @@ const App = () => {
         />
       )}
 
-      {/* Halaman Home (Manajemen Buku) */}
+      {/* Halaman Home (Manajemen Buku dan Pengumuman) */}
       {currentPage === 'home' && isAuthenticated && (
         <>
           <h1 className="text-center">Manajemen Buku</h1>
@@ -156,7 +191,7 @@ const App = () => {
                 id="title"
                 className="form-control"
                 value={newBook.title}
-                onChange={handleInputChange}
+                onChange={(e) => setNewBook({ ...newBook, title: e.target.value })}
                 required
               />
             </div>
@@ -167,7 +202,7 @@ const App = () => {
                 id="author"
                 className="form-control"
                 value={newBook.author}
-                onChange={handleInputChange}
+                onChange={(e) => setNewBook({ ...newBook, author: e.target.value })}
                 required
               />
             </div>
@@ -178,7 +213,8 @@ const App = () => {
                 id="year"
                 className="form-control"
                 value={newBook.year}
-                onChange={handleInputChange}
+                onChange={(e) => setNewBook({ ...newBook, year: e.target.value })}
+                required
               />
             </div>
             <div className="mb-3">
@@ -188,11 +224,47 @@ const App = () => {
                 id="genre"
                 className="form-control"
                 value={newBook.genre}
-                onChange={handleInputChange}
+                onChange={(e) => setNewBook({ ...newBook, genre: e.target.value })}
+                required
               />
             </div>
             <button type="submit" className="btn btn-primary">Tambah Buku</button>
           </form>
+
+
+          <div className="container my-5">
+            {/* Other parts of your app */}
+            {currentPage === 'home' && isAuthenticated && (
+              <>
+                {/* Form untuk pengumuman */}
+                <form onSubmit={handleAddAnnouncement} className="mb-4">
+                  <h2>Tambah Pengumuman</h2>
+                  <div className="mb-3">
+                    <label htmlFor="announcement" className="form-label">Pengumuman</label>
+                    <input
+                      type="text"
+                      id="announcement"
+                      className="form-control"
+                      value={newAnnouncement}
+                      onChange={(e) => setNewAnnouncement(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary">Tambah Pengumuman</button>
+                </form>
+
+                {/* Daftar Pengumuman */}
+                <h2>Daftar Pengumuman</h2>
+                <ul className="list-group">
+                  {announcements.map((announcement, index) => (
+                    <li key={index} className="list-group-item">
+                      {announcement}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
 
           {/* Daftar Buku */}
           <h2>Daftar Buku</h2>
@@ -237,8 +309,8 @@ const App = () => {
       )}
 
       {/* Halaman Edit Buku */}
-      {currentPage === 'edit-book' && isAuthenticated && editBookId && (
-        <EditBookPage bookId={editBookId} navigateTo={navigateTo} baseURL={baseURL} />
+      {currentPage === 'edit' && editBookId && (
+        <EditBookPage bookId={editBookId} onNavigateBack={() => setCurrentPage('home')} />
       )}
     </div>
   );
