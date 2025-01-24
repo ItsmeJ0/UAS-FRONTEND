@@ -329,8 +329,8 @@ const App = () => {
       )}
 
       {/* Halaman Edit Buku */}
-      {currentPage === 'edit' && editBookId && (
-        <EditBookPage bookId={editBookId} onNavigateBack={() => setCurrentPage('home')} />
+      {currentPage === 'edit-book' && isAuthenticated && editBookId && (
+        <EditBookPage bookId={editBookId} navigateTo={navigateTo} baseURL={baseURL} />
       )}
     </div>
   );
