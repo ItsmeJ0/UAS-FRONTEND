@@ -24,38 +24,58 @@ const App = () => {
     }
   }, []);
 
-  // Setup WebSocket connection
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:3001/ws');
-    socket.onmessage = (event) => {
-      setAnnouncements((prevAnnouncements) => [
-        ...prevAnnouncements,
-        event.data,
-      ]);
+    const connectWebSocket = () => {
+      const socket = new WebSocket('ws://localhost:3001/ws');
+
+      socket.onopen = () => {
+        console.log('WebSocket connection established');
+        setWs(socket);
+      };
+
+      socket.onmessage = (event) => {
+        console.log('Received message:', event.data);
+        setAnnouncements((prevAnnouncements) => [
+          ...prevAnnouncements,
+          event.data,
+        ]);
+      };
+      
+      socket.onclose = (event) => {
+        console.log('WebSocket connection closed:', event);
+      };
+
+      return socket;
     };
-    setWs(socket);
+
+    const ws = connectWebSocket();
 
     return () => {
-      socket.close();
+      ws.close();
     };
   }, []);
+
 
   // Handle add announcement
   const handleAddAnnouncement = async (e) => {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${baseURL}/api/announcement`, { content: newAnnouncement }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await axios.post(`${baseURL}/api/announcement`,
+        { message: newAnnouncement }, // Ganti content menjadi message
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setNewAnnouncement('');
     } catch (error) {
       console.error('Error adding announcement:', error);
       alert('Gagal menambahkan pengumuman');
     }
   };
+
   // Cek token saat aplikasi dimulai
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -128,12 +148,12 @@ const App = () => {
     }
   };
 
-  // Navigasi antar halaman
-  const navigateTo = (page, bookId = null) => {
+   // Navigasi antar halaman
+   const navigateTo = (page, bookId = null) => {
     setCurrentPage(page);
     setEditBookId(bookId);
   };
-
+  
   // Handle login
   const handleLogin = async (email, password) => {
     try {
